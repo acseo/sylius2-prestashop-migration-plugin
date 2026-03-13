@@ -179,16 +179,15 @@
             <argument type="service" id="ACSEO\PrestashopMigrationPlugin\Resolver\ConfigurationResolver"/>
         </service>
 
-        <!--  <service
-                  id="ACSEO\PrestashopMigrationPlugin\DataTransformer\Resource\Shipping\ShippingMethodResourceTransformer"
-                  decorates="prestashop.data_transformer.resource.shipping_method">
-              <argument type="service" id=".inner"/>
-              <argument type="service" id="sylius.repository.shipping_method"/>
-              <argument type="service" id="sylius.repository.channel"/>
-              <argument type="service" id="sylius.repository.zone"/>
-              <argument type="service" id="prestashop.repository.carrier"/>
-              <argument type="service" id="ACSEO\PrestashopMigrationPlugin\Model\LocaleFetcher"/>
-          </service>-->
+        <service id="ACSEO\PrestashopMigrationPlugin\DataTransformer\Resource\Shipping\ShippingMethodResourceTransformer"
+                 decorates="prestashop.data_transformer.resource.shipping_method">
+            <argument type="service" id=".inner"/>
+            <argument type="service" id="ACSEO\PrestashopMigrationPlugin\Model\LocaleFetcher"/>
+            <argument type="service" id="prestashop.repository.carrier"/>
+            <argument type="service" id="sylius.repository.zone"/>
+            <argument type="service" id="sylius.repository.shipping_category"/>
+            <argument type="service" id="sylius.repository.channel"/>
+        </service>
 
         <service id="ACSEO\PrestashopMigrationPlugin\DataTransformer\Resource\User\ShopUserResourceTransformer"
                  decorates="prestashop.data_transformer.resource.customer">
@@ -263,6 +262,13 @@
             <argument type="service" id="sylius.repository.customer_group"/>
         </service>
 
+        <service id="ACSEO\PrestashopMigrationPlugin\Provider\Shipping\ShippingMethodResourceProvider"
+                 decorates="prestashop.provider.shipping_method">
+            <argument type="service" id=".inner"/>
+            <argument type="service" id="sylius.repository.shipping_method"/>
+            <argument type="service" id="prestashop.repository.carrier"/>
+        </service>
+
         <service id="ACSEO\PrestashopMigrationPlugin\Provider\Product\ProductResourceProvider"
                  decorates="prestashop.provider.product">
             <argument type="service" id=".inner"/>
@@ -321,11 +327,10 @@
             <argument type="service" id=".inner"/>
         </service>
 
-        <!-- <service id="ACSEO\PrestashopMigrationPlugin\Validator\Shipping\ShippingMethodValidator"
-                  decorates="prestashop.validator.shipping_method">
-             <argument type="service" id=".inner"/>
-             <argument type="service" id="prestashop.repository.carrier"/>
-         </service>-->
+        <service id="ACSEO\PrestashopMigrationPlugin\Validator\Shipping\ShippingMethodValidator"
+                 decorates="prestashop.validator.shipping_method">
+            <argument type="service" id=".inner"/>
+        </service>
 
         <service id="ACSEO\PrestashopMigrationPlugin\Validator\Product\ProductVariantValidator"
                  decorates="prestashop.validator.product_variant">

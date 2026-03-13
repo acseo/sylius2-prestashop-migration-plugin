@@ -43,7 +43,7 @@ class EntityTranslatableCollector implements DataCollectorInterface
                 //Add translations
 
                 foreach ($diff as $key => $value) {
-                    if (!array_key_exists($key, $row)) {
+                    if (!array_key_exists($key, $row) || !\is_array($row[$key])) {
                         $row[$key] = [];
                     }
 

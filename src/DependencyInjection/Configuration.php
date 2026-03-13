@@ -16,6 +16,7 @@ use ACSEO\PrestashopMigrationPlugin\Model\Lang\LangModel;
 use ACSEO\PrestashopMigrationPlugin\Model\Product\ProductAttributeModel;
 use ACSEO\PrestashopMigrationPlugin\Model\Order\OrderModel;
 use ACSEO\PrestashopMigrationPlugin\Model\Product\ProductModel;
+use ACSEO\PrestashopMigrationPlugin\Model\Shipping\ShippingMethodModel;
 use ACSEO\PrestashopMigrationPlugin\Model\Shop\ShopModel;
 use ACSEO\PrestashopMigrationPlugin\Model\Tax\TaxCategoryModel;
 use ACSEO\PrestashopMigrationPlugin\Model\Tax\TaxModel;
@@ -27,9 +28,10 @@ use ACSEO\PrestashopMigrationPlugin\Repository\Currency\CurrencyRepository;
 use ACSEO\PrestashopMigrationPlugin\Repository\Customer\CustomerGroupRepository;
 use ACSEO\PrestashopMigrationPlugin\Repository\Customer\CustomerRepository;
 use ACSEO\PrestashopMigrationPlugin\Repository\EntityRepository;
+use ACSEO\PrestashopMigrationPlugin\Repository\Order\OrderRepository;
 use ACSEO\PrestashopMigrationPlugin\Repository\Product\ProductAttributeRepository;
 use ACSEO\PrestashopMigrationPlugin\Repository\Product\ProductRepository;
-use ACSEO\PrestashopMigrationPlugin\Repository\Order\OrderRepository;
+use ACSEO\PrestashopMigrationPlugin\Repository\Shipping\ShippingMethodRepository;
 use ACSEO\PrestashopMigrationPlugin\Repository\Shop\ShopRepository;
 use Symfony\Component\Config\Definition\Builder\NodeBuilder;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
@@ -343,18 +345,18 @@ class Configuration implements ConfigurationInterface
                             ->scalarNode('priority')->defaultValue(210)->end()
                         ->end()
                     ->end()
-                   /* ->arrayNode('shipping_method')
+                    ->arrayNode('shipping_method')
                         ->addDefaultsIfNotSet()
                         ->children()
                             ->scalarNode('table')->defaultValue('carrier')->end()
-                            ->scalarNode('repository')->defaultValue(CarrierRepository::class)->end()
-                            ->scalarNode('model')->defaultValue(CarrierModel::class)->end()
+                            ->scalarNode('repository')->defaultValue(ShippingMethodRepository::class)->end()
+                            ->scalarNode('model')->defaultValue(ShippingMethodModel::class)->end()
                             ->scalarNode('primary_key')->defaultValue('id_carrier')->end()
                             ->scalarNode('use_translation')->defaultValue(true)->end()
                             ->scalarNode('sylius')->defaultValue('shipping_method')->end()
-                            ->scalarNode('priority')->defaultValue(240)->end()
+                            ->scalarNode('priority')->defaultValue(185)->end()
                         ->end()
-                    ->end()*/
+                    ->end()
                     ->arrayNode('tax_category')
                         ->addDefaultsIfNotSet()
                         ->children()

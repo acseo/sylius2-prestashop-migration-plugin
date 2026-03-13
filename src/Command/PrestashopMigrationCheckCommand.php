@@ -94,6 +94,11 @@ class PrestashopMigrationCheckCommand extends Command
             'label' => 'Admin Users',
             'command' => 'prestashop:migration:admin_user',
         ],
+        'shipping_method' => [
+            'sylius_entity' => 'App\Entity\Shipping\ShippingMethod',
+            'label' => 'Shipping Methods',
+            'command' => 'prestashop:migration:shipping_method',
+        ],
         'order' => [
             'sylius_entity' => 'App\Entity\Order\Order',
             'label' => 'Orders',

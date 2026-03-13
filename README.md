@@ -110,6 +110,7 @@ Apply this trait to the following entities:
 - `App\Entity\User\AdminUser`
 - `App\Entity\Order\Order`
 - `App\Entity\Order\OrderItem`
+- `App\Entity\Shipping\ShippingMethod`
 
 ### Implement ProductVariantInterface (for Product Variants only)
 
@@ -232,10 +233,13 @@ php bin/console prestashop:migration:customer
 php bin/console prestashop:migration:address
 php bin/console prestashop:migration:admin_user
 
-# 6. Orders
+# 6. Shipping methods (before orders)
+php bin/console prestashop:migration:shipping_method
+
+# 7. Orders
 php bin/console prestashop:migration:order
 
-# 7. Product images (optional, can take time)
+# 8. Product images (optional, can take time)
 php bin/console prestashop:migration:product:images
 ```
 
@@ -254,6 +258,7 @@ This command runs all migrations in the correct order (by priority). It includes
 - Taxons, product options, product option values, products, product variants
 - **Customer groups** (before customers)
 - Customers, addresses, admin users
+- **Shipping methods** (before orders)
 - Orders
 - Product images (optional, see below)
 
@@ -351,6 +356,35 @@ The following entities have smart duplicate detection:
 - **Currency**: Matches by currency code (e.g., `EUR`, `USD`)
 - **Country**: Matches by ISO country code (e.g., `FR`, `US`)
 - **Customer Group**: Matches by generated code (slug from name + id) to avoid duplicates on re-run
+- **Shipping Method**: Matches by generated code (slug + carrier id + zone suffix) to avoid duplicates on re-run
+
+## Shipping Methods
+
+Shipping methods are migrated from PrestaShop `ps_carrier` and `ps_carrier_lang` to Sylius `sylius_shipping_method`.
+
+### Mapping
+
+| PrestaShop (ps_carrier) | Sylius (shipping_method) |
+|-------------------------|--------------------------|
+| id_carrier              | prestashopId (trait)     |
+| name (carrier_lang)     | code (slugified, unique) |
+| name (carrier_lang)     | name (translation)       |
+| delay (carrier_lang)    | description (translation)|
+| active && !deleted      | enabled                  |
+| is_free                 | configuration amount (0 or default) |
+| shipping_method (0/1/2) | calculator: flat_rate    |
+
+### Behaviour
+
+- **Calculator**: All carriers are migrated with the `flat_rate` calculator. Tariff grids (weight/price) from PrestaShop are not migrated; a default amount (or 0 if free) is set per channel.
+- **Zone**: The first zone from `ps_carrier_zone` is assigned. Sylius uses one zone per shipping method.
+- **Channels**: Channels are taken from `ps_carrier_shop`; if none, the method is attached to all channels.
+- **Category**: An existing shipping category (code `standard` or `default`, or the first one) is assigned. Ensure at least one shipping category exists in Sylius before migrating.
+
+### Limitations
+
+- **Tariff grids**: PrestaShop range_price and range_weight are **not** migrated. Reconfigure rates in Sylius after migration if needed.
+- **Multiple zones**: One Sylius method = one zone; the first carrier zone is used. For multiple zones, consider creating additional methods manually.
 
 ## Customer Groups
 

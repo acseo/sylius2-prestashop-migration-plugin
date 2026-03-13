@@ -47,6 +47,11 @@ final class ModelMapper implements ModelMapperInterface
                 $value = $data[$field->source];
 
                 if ($field->translatable) {
+                    if (!\is_array($value)) {
+                        $locales = $this->fetcher->getLocales();
+                        $firstLocale = $locales[0] ?? null;
+                        $value = $firstLocale ? [$firstLocale->getCode() => $value] : [];
+                    }
                     foreach ($value as $langId => $translation) {
                         $locale = $this->fetcher->getLocaleCode($langId);
 

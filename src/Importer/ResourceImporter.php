@@ -40,13 +40,14 @@ class ResourceImporter implements ImporterInterface
         $this->violationBag = $violationBag;
     }
 
-    public function import(callable $callable = null, bool $dryRun = false): void
+    public function import(?callable $callable = null, bool $dryRun = false): void
     {
         $offset = 0;
 
         while ($offset < $this->size()) {
 
             $collection = $this->collector->collect($this->step, $offset);
+            $processed = count($collection);
 
             foreach ($collection as $item) {
                 $this->persister->persist($item, $dryRun);
@@ -56,10 +57,10 @@ class ResourceImporter implements ImporterInterface
                 $this->entityManager->flush();
             }
 
-            $offset += $this->step;
+            $offset += $processed;
 
             if (null !== $callable) {
-                $callable($this->step, $this->violationBag->all(), $dryRun);
+                $callable($processed, $this->violationBag->all(), $dryRun);
             }
         }
     }

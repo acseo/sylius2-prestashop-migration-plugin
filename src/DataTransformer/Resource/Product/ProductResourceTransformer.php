@@ -5,14 +5,17 @@ namespace ACSEO\PrestashopMigrationPlugin\DataTransformer\Resource\Product;
 
 use Behat\Transliterator\Transliterator;
 use ACSEO\PrestashopMigrationPlugin\DataTransformer\Resource\ResourceTransformerInterface;
+use ACSEO\PrestashopMigrationPlugin\DataTransformer\TransformerInterface;
 use ACSEO\PrestashopMigrationPlugin\Model\LocaleFetcher;
 use ACSEO\PrestashopMigrationPlugin\Model\ModelInterface;
 use ACSEO\PrestashopMigrationPlugin\Model\Product\ProductModel;
+use ACSEO\PrestashopMigrationPlugin\Repository\Category\CategoryRepository;
 use ACSEO\PrestashopMigrationPlugin\Repository\EntityRepositoryInterface;
 use ACSEO\PrestashopMigrationPlugin\Repository\Product\ProductAttributeRepository;
 use ACSEO\PrestashopMigrationPlugin\Repository\Product\ProductRepository;
 use ACSEO\PrestashopMigrationPlugin\Repository\Stock\StockAvailableRepository;
 use ACSEO\PrestashopMigrationPlugin\Resolver\ConfigurationResolver;
+use Doctrine\ORM\EntityManagerInterface;
 use Sylius\Component\Core\Formatter\StringInflector;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\ChannelPricingInterface;
@@ -59,6 +62,13 @@ class ProductResourceTransformer implements ResourceTransformerInterface
 
     private ConfigurationResolver $configurationResolver;
 
+    /** @var CategoryRepository $categoryRepository */
+    private EntityRepositoryInterface $categoryRepository;
+
+    private TransformerInterface $taxonTransformer;
+
+    private EntityManagerInterface $entityManager;
+
     public function __construct(
         ResourceTransformerInterface    $transformer,
         EntityRepositoryInterface       $productRepository,
@@ -73,6 +83,9 @@ class ProductResourceTransformer implements ResourceTransformerInterface
         SlugGenerator                   $slugGenerator,
         LocaleFetcher                   $localeFetcher,
         ConfigurationResolver           $configurationResolver,
+        EntityRepositoryInterface       $categoryRepository,
+        TransformerInterface            $taxonTransformer,
+        EntityManagerInterface          $entityManager,
     )
     {
         $this->transformer = $transformer;
@@ -88,6 +101,9 @@ class ProductResourceTransformer implements ResourceTransformerInterface
         $this->slugGenerator = $slugGenerator;
         $this->localeFetcher = $localeFetcher;
         $this->configurationResolver = $configurationResolver;
+        $this->categoryRepository = $categoryRepository;
+        $this->taxonTransformer = $taxonTransformer;
+        $this->entityManager = $entityManager;
     }
 
     /**
@@ -103,13 +119,33 @@ class ProductResourceTransformer implements ResourceTransformerInterface
          */
         $product = $this->transformer->transform($model);
 
-        foreach ($this->localeFetcher->getLocales() as $locale) {
+        $locales = $this->localeFetcher->getLocales();
+        $fallbackLocaleCode = null;
+        foreach ($locales as $candidateLocale) {
+            $candidateCode = $candidateLocale->getCode();
+            $candidateName = $model->getName($candidateCode);
+            if (null !== $candidateName && '' !== $candidateName) {
+                $fallbackLocaleCode = $candidateCode;
+                break;
+            }
+        }
+
+        foreach ($locales as $locale) {
 
             $product->setCurrentLocale($locale->getCode());
-            $product->setFallbackLocale($locale->getCode());
+            if (null !== $fallbackLocaleCode) {
+                $product->setFallbackLocale($fallbackLocaleCode);
+            }
 
-            $product->setName($model->getName($locale->getCode()));
-            $product->setDescription($model->getDescription($locale->getCode()));
+            $name = $model->getName($locale->getCode()) ?? ($fallbackLocaleCode ? $model->getName($fallbackLocaleCode) : null);
+            if (null !== $name) {
+                $product->setName($name);
+            }
+
+            $description = $model->getDescription($locale->getCode()) ?? ($fallbackLocaleCode ? $model->getDescription($fallbackLocaleCode) : null);
+            if (null !== $description) {
+                $product->setDescription($description);
+            }
 
             if (null === $model->code && null === $product->getCode()) {
                 $product->setCode($product->getName());
@@ -129,7 +165,10 @@ class ProductResourceTransformer implements ResourceTransformerInterface
 
     private function addSlug(ProductInterface $product, ProductModel $model, LocaleInterface $locale): void
     {
-        $product->setSlug($model->getSlug($locale->getCode()));
+        $slug = $model->getSlug($locale->getCode());
+        if (null !== $slug) {
+            $product->setSlug($slug);
+        }
 
         $slugs = $this->productRepository->findBySlug($product->getSlug());
 
@@ -164,6 +203,10 @@ class ProductResourceTransformer implements ResourceTransformerInterface
              */
             $taxon = $this->taxonRepository->findOneBy(['prestashopId' => $categoryId]);
 
+            if (null === $taxon) {
+                $taxon = $this->createMissingTaxon($categoryId);
+            }
+
             if (null === $taxon || $product->hasTaxon($taxon)) {
                 continue;
             }
@@ -184,6 +227,47 @@ class ProductResourceTransformer implements ResourceTransformerInterface
                 $product->setMainTaxon($taxon);
             }
         }
+    }
+
+    private function createMissingTaxon(int $categoryId): ?TaxonInterface
+    {
+        // Root category is intentionally ignored by TaxonValidator
+        if (1 === $categoryId) {
+            return null;
+        }
+
+        $row = $this->categoryRepository->find($categoryId);
+        if ([] === $row) {
+            return null;
+        }
+
+        // Build the same "translatable" shape as EntityTranslatableCollector
+        $translations = $this->categoryRepository->findTranslations($categoryId);
+        foreach ($translations as $translation) {
+            if (!array_key_exists('id_lang', $translation)) {
+                continue;
+            }
+
+            $langId = (int) $translation['id_lang'];
+            unset($translation['id_lang']);
+            unset($translation['id_shop']);
+
+            $diff = array_diff_assoc($translation, $row);
+            foreach ($diff as $key => $value) {
+                if (!array_key_exists($key, $row)) {
+                    $row[$key] = [];
+                }
+                $row[$key][$langId] = $value;
+            }
+        }
+
+        /** @var TaxonInterface $taxon */
+        $taxon = $this->taxonTransformer->transform($row);
+
+        $this->entityManager->persist($taxon);
+        $this->entityManager->flush();
+
+        return $taxon;
     }
 
     private function addVariant(ProductInterface $product): void

@@ -49,7 +49,7 @@ class ResourceCommand extends Command
         $persisted = 0;
         $skipped = 0;
 
-        $this->importer->import(function (int $step, array $violations, bool $isDryRun) use ($progressBar, $io, &$persisted, &$skipped) {
+        $this->importer->import(function (int $processed, array $violations, bool $isDryRun) use ($progressBar, $io, &$persisted, &$skipped) {
 
             $violationCount = 0;
             array_walk_recursive($violations,
@@ -62,10 +62,10 @@ class ResourceCommand extends Command
                 }
             );
 
-            $persisted += ($step - $violationCount);
+            $persisted += ($processed - $violationCount);
             $skipped += $violationCount;
 
-            $progressBar->advance($step);
+            $progressBar->advance($processed);
         }, $dryRun);
 
         $progressBar->finish();

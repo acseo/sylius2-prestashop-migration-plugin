@@ -25,18 +25,11 @@ class ResourcePersister implements PersisterInterface
     public function persist(array $data, bool $dryRun = false): void
     {
         $resource = $this->transformer->transform($data);
-        echo ".";
         
         if ($this->validator->validate($resource)) {
             if (!$dryRun) {
                 $this->manager->persist($resource);
             }
-        } else {
-            $errors = $this->validator->validate($resource);
-            dump($errors);
-            dump("invalid ressource : ");
-            dump($resource);
-            die();
         }
     }
 

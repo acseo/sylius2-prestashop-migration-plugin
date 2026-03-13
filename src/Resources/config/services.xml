@@ -135,6 +135,9 @@
             <argument type="service" id="sylius.generator.slug"/>
             <argument type="service" id="ACSEO\PrestashopMigrationPlugin\Model\LocaleFetcher"/>
             <argument type="service" id="ACSEO\PrestashopMigrationPlugin\Resolver\ConfigurationResolver"/>
+            <argument type="service" id="prestashop.repository.category"/>
+            <argument type="service" id="prestashop.data_transformer.taxon"/>
+            <argument type="service" id="doctrine.orm.entity_manager"/>
         </service>
 
         <service id="ACSEO\PrestashopMigrationPlugin\DataTransformer\Resource\Product\ProductOptionResourceTransformer"

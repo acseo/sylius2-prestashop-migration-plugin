@@ -46,14 +46,32 @@ final class TaxonResourceTransformer implements ResourceTransformerInterface
          */
         $taxon = $this->transformer->transform($model);
 
-        foreach ($this->localeFetcher->getLocales() as $locale) {
-            $taxon->setCurrentLocale($locale->getCode());
-            $taxon->setFallbackLocale($locale->getCode());
+        $locales = $this->localeFetcher->getLocales();
+        $fallbackLocaleCode = null;
+        foreach ($locales as $candidateLocale) {
+            $candidateCode = $candidateLocale->getCode();
+            if (isset($model->name[$candidateCode]) && null !== $model->name[$candidateCode] && '' !== $model->name[$candidateCode]) {
+                $fallbackLocaleCode = $candidateCode;
+                break;
+            }
+        }
 
-            $name = $model->name[$locale->getCode()];
+        foreach ($locales as $locale) {
+            $taxon->setCurrentLocale($locale->getCode());
+            if (null !== $fallbackLocaleCode) {
+                $taxon->setFallbackLocale($fallbackLocaleCode);
+            }
+
+            $name = $model->name[$locale->getCode()] ?? ($fallbackLocaleCode ? ($model->name[$fallbackLocaleCode] ?? null) : null);
+            if (null === $name || '' === $name) {
+                continue;
+            }
 
             $taxon->setName($name);
-            $taxon->setDescription($model->description[$locale->getCode()]);
+            $description = $model->description[$locale->getCode()] ?? ($fallbackLocaleCode ? ($model->description[$fallbackLocaleCode] ?? null) : null);
+            if (null !== $description) {
+                $taxon->setDescription($description);
+            }
 
             //Set the name with code because prestashop can have multiple categories with same name. Can break the slug taxon in Sylius which is unique.
             if (null === $taxon->getId() && null === $taxon->getCode()) {

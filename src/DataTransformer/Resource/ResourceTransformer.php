@@ -53,10 +53,14 @@ final class ResourceTransformer implements ResourceTransformerInterface
                     continue;
                 }
 
+                if ($field->translatable) {
+                    continue;
+                }
+
                 try {
                     $propertyAccessor->setValue($resource, $field->target, $property->getValue($model));
                 } catch (InvalidArgumentException $exception) {
-                    throw $e;
+                    throw $exception;
                     continue;
                 }
             }

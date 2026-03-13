@@ -149,6 +149,7 @@
             <argument type="service" id="prestashop.repository.category"/>
             <argument type="service" id="prestashop.data_transformer.taxon"/>
             <argument type="service" id="doctrine.orm.entity_manager"/>
+            <argument type="service" id="sylius.repository.order_item"/>
         </service>
 
         <service id="ACSEO\PrestashopMigrationPlugin\DataTransformer\Resource\Product\ProductOptionResourceTransformer"
@@ -187,6 +188,15 @@
             <argument type="service" id="sylius.repository.zone"/>
             <argument type="service" id="sylius.repository.shipping_category"/>
             <argument type="service" id="sylius.repository.channel"/>
+        </service>
+
+        <service id="ACSEO\PrestashopMigrationPlugin\DataTransformer\Resource\Payment\PaymentMethodResourceTransformer"
+                 decorates="prestashop.data_transformer.resource.payment_method">
+            <argument type="service" id=".inner"/>
+            <argument type="service" id="sylius.factory.gateway_config"/>
+            <argument type="service" id="ACSEO\PrestashopMigrationPlugin\Model\LocaleFetcher"/>
+            <argument type="service" id="sylius.repository.channel"/>
+            <argument type="service" id="logger"/>
         </service>
 
         <service id="ACSEO\PrestashopMigrationPlugin\DataTransformer\Resource\User\ShopUserResourceTransformer"
@@ -269,6 +279,12 @@
             <argument type="service" id="prestashop.repository.carrier"/>
         </service>
 
+        <service id="ACSEO\PrestashopMigrationPlugin\Provider\Payment\PaymentMethodResourceProvider"
+                 decorates="prestashop.provider.payment_method">
+            <argument type="service" id=".inner"/>
+            <argument type="service" id="sylius.repository.payment_method"/>
+        </service>
+
         <service id="ACSEO\PrestashopMigrationPlugin\Provider\Product\ProductResourceProvider"
                  decorates="prestashop.provider.product">
             <argument type="service" id=".inner"/>
@@ -329,6 +345,11 @@
 
         <service id="ACSEO\PrestashopMigrationPlugin\Validator\Shipping\ShippingMethodValidator"
                  decorates="prestashop.validator.shipping_method">
+            <argument type="service" id=".inner"/>
+        </service>
+
+        <service id="ACSEO\PrestashopMigrationPlugin\Validator\Payment\PaymentMethodValidator"
+                 decorates="prestashop.validator.payment_method">
             <argument type="service" id=".inner"/>
         </service>
 

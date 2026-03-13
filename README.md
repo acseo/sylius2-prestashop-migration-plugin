@@ -99,6 +99,9 @@ Apply this trait to the following entities:
 - `App\Entity\Taxonomy\Taxon`
 - `App\Entity\Customer\Customer`
 - `App\Entity\Customer\CustomerGroup`
+- `App\Entity\Payment\PaymentMethod`
+- `App\Entity\Shipping\ShippingMethod`
+- `App\Entity\Customer\CustomerGroup`
 - `App\Entity\Addressing\Address`
 - `App\Entity\Addressing\Country`
 - `App\Entity\Addressing\Zone`
@@ -110,6 +113,8 @@ Apply this trait to the following entities:
 - `App\Entity\User\AdminUser`
 - `App\Entity\Order\Order`
 - `App\Entity\Order\OrderItem`
+- `App\Entity\Customer\CustomerGroup`
+- `App\Entity\Payment\PaymentMethod`
 - `App\Entity\Shipping\ShippingMethod`
 
 ### Implement ProductVariantInterface (for Product Variants only)
@@ -236,10 +241,13 @@ php bin/console prestashop:migration:admin_user
 # 6. Shipping methods (before orders)
 php bin/console prestashop:migration:shipping_method
 
-# 7. Orders
+# 7. Payment methods (before orders)
+php bin/console prestashop:migration:payment_method
+
+# 8. Orders
 php bin/console prestashop:migration:order
 
-# 8. Product images (optional, can take time)
+# 9. Product images (optional, can take time)
 php bin/console prestashop:migration:product:images
 ```
 
@@ -259,6 +267,7 @@ This command runs all migrations in the correct order (by priority). It includes
 - **Customer groups** (before customers)
 - Customers, addresses, admin users
 - **Shipping methods** (before orders)
+- **Payment methods** (before orders)
 - Orders
 - Product images (optional, see below)
 
@@ -357,6 +366,7 @@ The following entities have smart duplicate detection:
 - **Country**: Matches by ISO country code (e.g., `FR`, `US`)
 - **Customer Group**: Matches by generated code (slug from name + id) to avoid duplicates on re-run
 - **Shipping Method**: Matches by generated code (slug + carrier id + zone suffix) to avoid duplicates on re-run
+- **Payment Method**: Matches by prestashop_id (module id) or generated code (slug from module name)
 
 ## Shipping Methods
 
@@ -406,6 +416,69 @@ Customer groups are migrated from PrestaShop `ps_group` and `ps_group_lang` to S
 ### Limitations
 
 - **Group reductions**: PrestaShop group discounts (`reduction`, `price_display_method`, `show_prices`) are **not** migrated. Sylius handles this via Promotions. Groups that had a reduction in PrestaShop are logged during migration so you can recreate equivalent promotions in Sylius if needed.
+
+## Payment Methods
+
+Payment methods are migrated from PrestaShop payment modules to Sylius `sylius_payment_method`.
+
+### Source
+
+Unlike other entities, PrestaShop doesn't have a dedicated table for payment methods. Payment methods are **modules** that hook into the `paymentOptions` hook. The migration uses:
+
+```sql
+SELECT m.id_module, m.name, m.active, GROUP_CONCAT(c.iso_code) as currencies
+FROM ps_hook_module h
+JOIN ps_module m ON m.id_module = h.id_module
+LEFT JOIN ps_module_currency mc ON mc.id_module = m.id_module
+LEFT JOIN ps_currency c ON c.id_currency = mc.id_currency
+WHERE h.id_hook IN (SELECT id_hook FROM ps_hook WHERE name = 'paymentOptions')
+  AND m.active = 1
+GROUP BY m.id_module
+```
+
+This approach ensures we migrate **only the configured and active payment modules**, not just the payment methods that have been used in orders.
+
+### Mapping
+
+| PrestaShop Module | Sylius PaymentMethod | Display Name |
+|------------------|---------------------|--------------|
+| ps_wirepayment | prestashopId: id_module<br>code: ps-wirepayment | Bank Wire Payment |
+| ps_checkpayment | code: ps-checkpayment | Payment by Check |
+| ps_cashondelivery | code: ps-cashondelivery | Cash on Delivery |
+| paypal | code: paypal<br>gateway: paypal | PayPal |
+| stripe / stripe_official | code: stripe<br>gateway: stripe | Stripe |
+| other modules | code: slugified name<br>gateway: offline | Auto-generated name |
+
+### Gateway Configuration
+
+Each payment method is automatically configured with a **GatewayConfig**:
+
+- **Offline modules** (default): `factory_name = 'offline'`
+- **PayPal modules**: Automatically detected and set to `factory_name = 'paypal'`
+- **Stripe modules**: Automatically detected and set to `factory_name = 'stripe'`
+
+### Behaviour
+
+- **Active status**: Respects the PrestaShop module's `active` status
+- **Translations**: Display names are created for all Sylius locales
+- **Channels**: Methods are associated with all Sylius channels
+- **Currencies**: Supported currencies information is logged but not directly applied (configure manually if needed)
+
+### Limitations
+
+- **Gateway configuration**: Only basic gateway configuration is created. For real payment gateways (Stripe, PayPal configured, etc.), you need to **manually configure** the gateway credentials and settings in Sylius after migration.
+- **Complex module settings**: PrestaShop-specific module configurations are not migrated.
+
+### Post-Migration Steps
+
+After migrating payment methods:
+
+1. Go to Sylius Admin → Configuration → Payment Methods
+2. For each real gateway (PayPal, Stripe, etc.):
+   - Edit the payment method
+   - Configure the gateway settings (API keys, credentials, etc.)
+   - Test the payment flow
+3. Disable or delete any unwanted offline methods
 
 ## Order State Mapping
 

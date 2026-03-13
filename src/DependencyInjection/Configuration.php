@@ -15,6 +15,7 @@ use ACSEO\PrestashopMigrationPlugin\Model\Employee\EmployeeModel;
 use ACSEO\PrestashopMigrationPlugin\Model\Lang\LangModel;
 use ACSEO\PrestashopMigrationPlugin\Model\Product\ProductAttributeModel;
 use ACSEO\PrestashopMigrationPlugin\Model\Order\OrderModel;
+use ACSEO\PrestashopMigrationPlugin\Model\Payment\PaymentMethodModel;
 use ACSEO\PrestashopMigrationPlugin\Model\Product\ProductModel;
 use ACSEO\PrestashopMigrationPlugin\Model\Shipping\ShippingMethodModel;
 use ACSEO\PrestashopMigrationPlugin\Model\Shop\ShopModel;
@@ -29,6 +30,7 @@ use ACSEO\PrestashopMigrationPlugin\Repository\Customer\CustomerGroupRepository;
 use ACSEO\PrestashopMigrationPlugin\Repository\Customer\CustomerRepository;
 use ACSEO\PrestashopMigrationPlugin\Repository\EntityRepository;
 use ACSEO\PrestashopMigrationPlugin\Repository\Order\OrderRepository;
+use ACSEO\PrestashopMigrationPlugin\Repository\Payment\PaymentMethodRepository;
 use ACSEO\PrestashopMigrationPlugin\Repository\Product\ProductAttributeRepository;
 use ACSEO\PrestashopMigrationPlugin\Repository\Product\ProductRepository;
 use ACSEO\PrestashopMigrationPlugin\Repository\Shipping\ShippingMethodRepository;
@@ -355,6 +357,18 @@ class Configuration implements ConfigurationInterface
                             ->scalarNode('use_translation')->defaultValue(true)->end()
                             ->scalarNode('sylius')->defaultValue('shipping_method')->end()
                             ->scalarNode('priority')->defaultValue(185)->end()
+                        ->end()
+                    ->end()
+                    ->arrayNode('payment_method')
+                        ->addDefaultsIfNotSet()
+                        ->children()
+                            ->scalarNode('table')->defaultValue('module')->end()
+                            ->scalarNode('repository')->defaultValue(PaymentMethodRepository::class)->end()
+                            ->scalarNode('model')->defaultValue(PaymentMethodModel::class)->end()
+                            ->scalarNode('primary_key')->defaultValue('id_module')->end()
+                            ->scalarNode('use_translation')->defaultValue(false)->end()
+                            ->scalarNode('sylius')->defaultValue('payment_method')->end()
+                            ->scalarNode('priority')->defaultValue(187)->end()
                         ->end()
                     ->end()
                     ->arrayNode('tax_category')

@@ -13,6 +13,7 @@ class CategoryRepository extends EntityRepository
             ->createQueryBuilder()
             ->select('*')
             ->from($this->getTable())
+            ->where('id_category != 1') // Exclude Root category (filtered by TaxonValidator)
             ->orderBy('id_parent', 'ASC');
 
         if (null !== $limit && null !== $offset) {
@@ -22,5 +23,16 @@ class CategoryRepository extends EntityRepository
         }
 
         return $query->executeQuery()->fetchAllAssociative();
+    }
+
+    public function count(): int
+    {
+        $query = $this->createQueryBuilder();
+        $query
+            ->select(sprintf('COUNT(%s)', $this->getPrimaryKey()))
+            ->from($this->getTable())
+            ->where('id_category != 1'); // Exclude Root category (filtered by TaxonValidator)
+
+        return (int) $query->executeQuery()->fetchOne();
     }
 }

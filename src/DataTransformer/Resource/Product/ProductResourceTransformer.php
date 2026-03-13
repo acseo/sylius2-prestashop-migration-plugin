@@ -69,6 +69,8 @@ class ProductResourceTransformer implements ResourceTransformerInterface
 
     private EntityManagerInterface $entityManager;
 
+    private RepositoryInterface $orderItemRepository;
+
     public function __construct(
         ResourceTransformerInterface    $transformer,
         EntityRepositoryInterface       $productRepository,
@@ -86,6 +88,7 @@ class ProductResourceTransformer implements ResourceTransformerInterface
         EntityRepositoryInterface       $categoryRepository,
         TransformerInterface            $taxonTransformer,
         EntityManagerInterface          $entityManager,
+        RepositoryInterface             $orderItemRepository,
     )
     {
         $this->transformer = $transformer;
@@ -104,6 +107,7 @@ class ProductResourceTransformer implements ResourceTransformerInterface
         $this->categoryRepository = $categoryRepository;
         $this->taxonTransformer = $taxonTransformer;
         $this->entityManager = $entityManager;
+        $this->orderItemRepository = $orderItemRepository;
     }
 
     /**
@@ -302,15 +306,26 @@ class ProductResourceTransformer implements ResourceTransformerInterface
             }
         }
 
-        //If we have options, we destroy all variants to prevent future variation import
+        //If we have options, we destroy all variants to prevent future variation import.
+        //Skip variants that are referenced by order items to avoid FK constraint violation.
         if ($product->hasOptions()) {
             foreach ($product->getVariants() as $variant) {
+                if ($this->isVariantUsedInOrder($variant)) {
+                    continue;
+                }
                 $product->removeVariant($variant);
             }
 
             //Choose match because Prestashop has no name for a variation.
             $product->setVariantSelectionMethod(ProductInterface::VARIANT_SELECTION_MATCH);
         }
+    }
+
+    private function isVariantUsedInOrder(ProductVariantInterface $variant): bool
+    {
+        $orderItem = $this->orderItemRepository->findOneBy(['variant' => $variant]);
+
+        return null !== $orderItem;
     }
 
     private function addChannel(ProductInterface $product, ProductModel $model): void

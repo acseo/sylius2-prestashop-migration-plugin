@@ -99,6 +99,11 @@ class PrestashopMigrationCheckCommand extends Command
             'label' => 'Shipping Methods',
             'command' => 'prestashop:migration:shipping_method',
         ],
+        'payment_method' => [
+            'sylius_entity' => 'App\Entity\Payment\PaymentMethod',
+            'label' => 'Payment Methods',
+            'command' => 'prestashop:migration:payment_method',
+        ],
         'order' => [
             'sylius_entity' => 'App\Entity\Order\Order',
             'label' => 'Orders',

@@ -1,0 +1,28 @@
+<?php
+declare(strict_types=1);
+
+namespace ACSEO\PrestashopMigrationPlugin\DataTransformer;
+
+use ACSEO\PrestashopMigrationPlugin\DataTransformer\Model\ModelTransformerInterface;
+use ACSEO\PrestashopMigrationPlugin\DataTransformer\Resource\ResourceTransformerInterface;
+use Sylius\Component\Resource\Model\ResourceInterface;
+
+final class PrestashopTransformer implements TransformerInterface
+{
+    private ModelTransformerInterface $modelTransformer;
+
+    private ResourceTransformerInterface $resourceTransformer;
+
+    public function __construct(ModelTransformerInterface $modelTransformer, ResourceTransformerInterface $resourceTransformer)
+    {
+        $this->modelTransformer = $modelTransformer;
+        $this->resourceTransformer = $resourceTransformer;
+    }
+
+    public function transform($data): ResourceInterface
+    {
+        $model = $this->modelTransformer->transform($data);
+
+        return $this->resourceTransformer->transform($model);
+    }
+}

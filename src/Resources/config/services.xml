@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<container xmlns="http://symfony.com/schema/dic/services"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://symfony.com/schema/dic/services
+        https://symfony.com/schema/dic/services/services-1.0.xsd">
+
+    <services>
+
+        <service id="ACSEO\PrestashopMigrationPlugin\Attribute\PropertyAttributeAccessor"/>
+
+        <service id="ACSEO\PrestashopMigrationPlugin\Validator\ViolationBag">
+            <argument type="service" id="sylius.context.locale"/>
+            <argument type="service" id="translator"/>
+        </service>
+        <service id="ACSEO\PrestashopMigrationPlugin\Validator\ViolationBagInterface"
+                 alias="ACSEO\PrestashopMigrationPlugin\Validator\ViolationBag"/>
+
+        <service id="ACSEO\PrestashopMigrationPlugin\Downloader\ImageDownloader">
+            <argument>%prestashop.public_directory%</argument>
+            <argument>%prestashop.tmp_directory%</argument>
+        </service>
+
+        <service id="ACSEO\PrestashopMigrationPlugin\Model\LocaleFetcher">
+            <argument type="service" id="prestashop.repository.lang"/>
+            <argument type="service" id="sylius.repository.locale"/>
+        </service>
+
+        <!-- COMMAND -->
+        <service id="ACSEO\PrestashopMigrationPlugin\Command\PrestashopMigrationCheckCommand">
+            <argument type="service" id="doctrine.orm.entity_manager"/>
+            <argument type="tagged_iterator" tag="prestashop.importer"/>
+            <tag name="console.command" command="prestashop:migration:check"/>
+        </service>
+
+        <service id="ACSEO\PrestashopMigrationPlugin\Command\PrestashopMigrationCommand">
+            <argument type="tagged_iterator" tag="prestashop.command.migration"/>
+            <argument type="service" id="doctrine.migrations.dependency_factory"/>
+            <tag name="console.command" command="prestashop:migration:all"/>
+        </service>
+
+        <service id="ACSEO\PrestashopMigrationPlugin\Command\PrestashopMigrationImageCommand">
+            <argument type="service" id="doctrine.orm.entity_manager"/>
+            <argument type="service" id="sylius.repository.product"/>
+            <argument type="service" id="prestashop.repository.product"/>
+            <argument type="service" id="ACSEO\PrestashopMigrationPlugin\Downloader\ImageDownloader"/>
+            <argument type="service" id="sylius.factory.product_image"/>
+            <argument type="service" id="sylius.uploader.image"/>
+            <tag name="console.command" command="prestashop:migration:product:images"/>
+            <tag name="prestashop.command.migration" priority="-255"/>
+        </service>
+
+        <service id="ACSEO\PrestashopMigrationPlugin\Command\ConfigurationCommand">
+            <argument type="tagged_iterator" tag="prestashop.configurator"/>
+            <tag name="console.command" command="prestashop:post_configuration"/>
+        </service>
+
+        <!-- COLLECTOR -->
+        <service id="ACSEO\PrestashopMigrationPlugin\DataCollector\Address\AddressCollector"
+                 decorates="prestashop.collector.address">
+            <argument type="service" id="prestashop.repository.address"/>
+        </service>
+
+        <service id="ACSEO\PrestashopMigrationPlugin\DataCollector\Customer\CustomerCollector"
+                 decorates="prestashop.collector.customer">
+            <argument type="service" id="prestashop.repository.customer"/>
+        </service>
+
+        <!-- MODEL TRANSFORMER -->
+        <service id="ACSEO\PrestashopMigrationPlugin\DataTransformer\Model\Channel\ChannelModelTransformer"
+                 decorates="prestashop.data_transformer.model.channel">
+            <argument type="service" id=".inner"/>
+            <argument type="service" id="prestashop.repository.currency"/>
+        </service>
+
+        <!-- PERSISTER -->
+        <service id="ACSEO\PrestashopMigrationPlugin\Persister\Taxon\TaxonPersister"
+                 decorates="prestashop.persister.taxon">
+            <argument type="service" id=".inner"/>
+            <argument type="service" id="doctrine.orm.entity_manager"/>
+        </service>
+
+        <!-- RESOLVER -->
+        <service id="ACSEO\PrestashopMigrationPlugin\Resolver\ConfigurationResolver">
+            <argument type="service" id="prestashop.repository.configuration"/>
+        </service>
+
+        <!-- RESOURCE TRANSFORMER -->
+        <service id="ACSEO\PrestashopMigrationPlugin\DataTransformer\Resource\AdminUser\AdminUserResourceTransformer"
+                 decorates="prestashop.data_transformer.resource.admin_user">
+            <argument type="service" id=".inner"/>
+            <argument type="service" id="sylius.security.password_updater"/>
+            <argument type="service" id="sylius.repository.locale"/>
+        </service>
+
+        <service id="ACSEO\PrestashopMigrationPlugin\DataTransformer\Resource\Address\AddressResourceTransformer"
+                 decorates="prestashop.data_transformer.resource.address">
+            <argument type="service" id=".inner"/>
+            <argument type="service" id="sylius.repository.customer"/>
+            <argument type="service" id="sylius.repository.country"/>
+        </service>
+
+        <service id="ACSEO\PrestashopMigrationPlugin\DataTransformer\Resource\Address\ZoneResourceTransformer"
+                 decorates="prestashop.data_transformer.resource.zone">
+            <argument type="service" id=".inner"/>
+            <argument type="service" id="sylius.repository.country"/>
+            <argument type="service" id="prestashop.repository.country"/>
+            <argument type="service" id="sylius.factory.zone_member"/>
+        </service>
+
+        <service id="ACSEO\PrestashopMigrationPlugin\DataTransformer\Resource\Channel\ChannelResourceTransformer"
+                 decorates="prestashop.data_transformer.resource.channel">
+            <argument type="service" id=".inner"/>
+            <argument type="service" id="sylius.repository.locale"/>
+            <argument type="service" id="sylius.repository.currency"/>
+            <argument type="service" id="parameter_bag"/>
+        </service>
+
+        <service id="ACSEO\PrestashopMigrationPlugin\DataTransformer\Resource\Lang\LangResourceTransformer"
+                 decorates="prestashop.data_transformer.resource.locale">
+            <argument type="service" id=".inner"/>
+        </service>
+
+        <service id="ACSEO\PrestashopMigrationPlugin\DataTransformer\Resource\Product\ProductResourceTransformer"
+                 decorates="prestashop.data_transformer.resource.product">
+            <argument type="service" id=".inner"/>
+            <argument type="service" id="prestashop.repository.product"/>
+            <argument type="service" id="prestashop.repository.product_attribute"/>
+            <argument type="service" id="prestashop.repository.stock_available"/>
+            <argument type="service" id="sylius.repository.taxon"/>
+            <argument type="service" id="sylius.repository.channel"/>
+            <argument type="service" id="sylius.repository.product_option_value"/>
+            <argument type="service" id="sylius.factory.product_taxon"/>
+            <argument type="service" id="sylius.factory.channel_pricing"/>
+            <argument type="service" id="sylius.resolver.product_variant.default"/>
+            <argument type="service" id="sylius.generator.slug"/>
+            <argument type="service" id="ACSEO\PrestashopMigrationPlugin\Model\LocaleFetcher"/>
+            <argument type="service" id="ACSEO\PrestashopMigrationPlugin\Resolver\ConfigurationResolver"/>
+        </service>
+
+        <service id="ACSEO\PrestashopMigrationPlugin\DataTransformer\Resource\Product\ProductOptionResourceTransformer"
+                 decorates="prestashop.data_transformer.resource.product_option">
+            <argument type="service" id=".inner"/>
+            <argument type="service" id="ACSEO\PrestashopMigrationPlugin\Model\LocaleFetcher"/>
+        </service>
+
+        <service
+                id="ACSEO\PrestashopMigrationPlugin\DataTransformer\Resource\Product\ProductOptionValueResourceTransformer"
+                decorates="prestashop.data_transformer.resource.product_option_value">
+            <argument type="service" id=".inner"/>
+            <argument type="service" id="sylius.repository.product_option"/>
+            <argument type="service" id="ACSEO\PrestashopMigrationPlugin\Model\LocaleFetcher"/>
+        </service>
+
+        <service
+                id="ACSEO\PrestashopMigrationPlugin\DataTransformer\Resource\Product\ProductVariantResourceTransformer"
+                decorates="prestashop.data_transformer.resource.product_variant">
+            <argument type="service" id=".inner"/>
+            <argument type="service" id="sylius.repository.product"/>
+            <argument type="service" id="sylius.repository.product_option_value"/>
+            <argument type="service" id="prestashop.repository.product"/>
+            <argument type="service" id="prestashop.repository.product_attribute"/>
+            <argument type="service" id="prestashop.repository.stock_available"/>
+            <argument type="service" id="sylius.factory.channel_pricing"/>
+            <argument type="service" id="ACSEO\PrestashopMigrationPlugin\Model\LocaleFetcher"/>
+            <argument type="service" id="ACSEO\PrestashopMigrationPlugin\Resolver\ConfigurationResolver"/>
+        </service>
+
+        <!--  <service
+                  id="ACSEO\PrestashopMigrationPlugin\DataTransformer\Resource\Shipping\ShippingMethodResourceTransformer"
+                  decorates="prestashop.data_transformer.resource.shipping_method">
+              <argument type="service" id=".inner"/>
+              <argument type="service" id="sylius.repository.shipping_method"/>
+              <argument type="service" id="sylius.repository.channel"/>
+              <argument type="service" id="sylius.repository.zone"/>
+              <argument type="service" id="prestashop.repository.carrier"/>
+              <argument type="service" id="ACSEO\PrestashopMigrationPlugin\Model\LocaleFetcher"/>
+          </service>-->
+
+        <service id="ACSEO\PrestashopMigrationPlugin\DataTransformer\Resource\User\ShopUserResourceTransformer"
+                 decorates="prestashop.data_transformer.resource.customer">
+            <argument type="service" id=".inner"/>
+            <argument type="service" id="sylius.factory.shop_user"/>
+        </service>
+
+        <service id="ACSEO\PrestashopMigrationPlugin\DataTransformer\Resource\Taxation\TaxRateResourceTransformer"
+                 decorates="prestashop.data_transformer.resource.tax_rate">
+            <argument type="service" id=".inner"/>
+            <argument type="service" id="sylius.repository.tax_category"/>
+            <argument type="service" id="sylius.repository.zone_member"/>
+            <argument type="service" id="sylius.factory.tax_category"/>
+            <argument type="service" id="doctrine.orm.entity_manager"/>
+            <argument type="service" id="sylius.context.locale"/>
+        </service>
+
+        <service id="ACSEO\PrestashopMigrationPlugin\DataTransformer\Resource\Taxation\TaxCategoryResourceTransformer"
+                 decorates="prestashop.data_transformer.resource.tax_category">
+            <argument type="service" id=".inner"/>
+            <argument type="service" id="sylius.context.locale"/>
+        </service>
+
+        <service id="ACSEO\PrestashopMigrationPlugin\DataTransformer\Resource\Taxon\TaxonResourceTransformer"
+                 decorates="prestashop.data_transformer.resource.taxon">
+            <argument type="service" id=".inner"/>
+            <argument type="service" id="sylius.generator.taxon_slug"/>
+            <argument type="service" id="sylius.repository.taxon"/>
+            <argument type="service" id="ACSEO\PrestashopMigrationPlugin\Model\LocaleFetcher"/>
+        </service>
+
+        <!--RESOURCE PROVIDER -->
+        <service id="ACSEO\PrestashopMigrationPlugin\Provider\Currency\CurrencyResourceProvider"
+                 decorates="prestashop.provider.currency">
+            <argument type="service" id=".inner"/>
+            <argument type="service" id="sylius.repository.currency"/>
+        </service>
+
+        <service id="ACSEO\PrestashopMigrationPlugin\Provider\Locale\LocaleResourceProvider"
+                 decorates="prestashop.provider.locale">
+            <argument type="service" id=".inner"/>
+            <argument type="service" id="sylius.repository.locale"/>
+        </service>
+
+        <service id="ACSEO\PrestashopMigrationPlugin\Provider\Country\CountryResourceProvider"
+                 decorates="prestashop.provider.country">
+            <argument type="service" id=".inner"/>
+            <argument type="service" id="sylius.repository.country"/>
+        </service>
+
+        <service id="ACSEO\PrestashopMigrationPlugin\Provider\Product\ProductResourceProvider"
+                 decorates="prestashop.provider.product">
+            <argument type="service" id=".inner"/>
+            <argument type="service" id="sylius.factory.product"/>
+        </service>
+
+        <!-- REPOSITORY -->
+        <service id="prestashop.repository.configuration"
+                 alias="ACSEO\PrestashopMigrationPlugin\Repository\Configuration\ConfigurationRepository"/>
+
+        <service id="ACSEO\PrestashopMigrationPlugin\Repository\Configuration\ConfigurationRepository">
+            <argument>configuration</argument>
+            <argument>%prestashop.prefix%</argument>
+            <argument>id_configuration</argument>
+            <argument type="service" id="doctrine.dbal.prestashop_connection"/>
+        </service>
+
+        <service id="prestashop.repository.image"
+                 alias="ACSEO\PrestashopMigrationPlugin\Repository\Image\ImageRepository"/>
+
+        <service id="ACSEO\PrestashopMigrationPlugin\Repository\Image\ImageRepository">
+            <argument>image</argument>
+            <argument>%prestashop.prefix%</argument>
+            <argument>id_image</argument>
+            <argument type="service" id="doctrine.dbal.prestashop_connection"/>
+        </service>
+
+        <service id="prestashop.repository.stock_available"
+                 alias="ACSEO\PrestashopMigrationPlugin\Repository\Stock\StockAvailableRepository"/>
+
+        <service id="ACSEO\PrestashopMigrationPlugin\Repository\Stock\StockAvailableRepository">
+            <argument>stock_available</argument>
+            <argument>%prestashop.prefix%</argument>
+            <argument>id_stock_available</argument>
+            <argument type="service" id="doctrine.dbal.prestashop_connection"/>
+        </service>
+        <!-- VALIDATOR -->
+
+        <service id="ACSEO\PrestashopMigrationPlugin\Validator\Currency\CurrencyValidator"
+                 decorates="prestashop.validator.currency">
+            <argument type="service" id=".inner"/>
+        </service>
+
+        <service id="ACSEO\PrestashopMigrationPlugin\Validator\Locale\LocaleValidator"
+                 decorates="prestashop.validator.locale">
+            <argument type="service" id=".inner"/>
+        </service>
+
+        <service id="ACSEO\PrestashopMigrationPlugin\Validator\Country\CountryValidator"
+                 decorates="prestashop.validator.country">
+            <argument type="service" id=".inner"/>
+        </service>
+
+        <!-- <service id="ACSEO\PrestashopMigrationPlugin\Validator\Shipping\ShippingMethodValidator"
+                  decorates="prestashop.validator.shipping_method">
+             <argument type="service" id=".inner"/>
+             <argument type="service" id="prestashop.repository.carrier"/>
+         </service>-->
+
+        <service id="ACSEO\PrestashopMigrationPlugin\Validator\Product\ProductVariantValidator"
+                 decorates="prestashop.validator.product_variant">
+            <argument type="service" id=".inner"/>
+        </service>
+
+        <service id="ACSEO\PrestashopMigrationPlugin\Validator\Taxation\TaxRateValidator"
+                 decorates="prestashop.validator.tax_rate">
+            <argument type="service" id=".inner"/>
+        </service>
+
+        <service id="ACSEO\PrestashopMigrationPlugin\Validator\Taxation\TaxCategoryValidator"
+                 decorates="prestashop.validator.tax_category">
+            <argument type="service" id=".inner"/>
+        </service>
+
+
+        <service id="ACSEO\PrestashopMigrationPlugin\Validator\Taxon\TaxonValidator"
+                 decorates="prestashop.validator.taxon">
+            <argument type="service" id=".inner"/>
+        </service>
+
+        <service id="ACSEO\PrestashopMigrationPlugin\Validator\Address\ZoneValidator"
+                 decorates="prestashop.validator.zone">
+            <argument type="service" id=".inner"/>
+        </service>
+
+    </services>
+</container>

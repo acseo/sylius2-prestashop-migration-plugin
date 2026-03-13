@@ -45,6 +45,7 @@ final class PrestashopMigrationExtension extends Extension
         $prefix = $config['prefix'];
         $publicDirectory = $config['public_directory'];
         $flushStep = $config['flush_step'];
+        $orderStateMapping = $config['order_state_mapping'] ?? [];
 
         if (null === $publicDirectory) {
             throw new InvalidConfigurationException('The configuration for "public_directory" is not defined. Please insert a value (ex : "https://www.example.com/img/p/")');
@@ -55,6 +56,7 @@ final class PrestashopMigrationExtension extends Extension
         $container->setParameter('prestashop.public_directory', $publicDirectory);
         $container->setParameter('prestashop.tmp_directory', $config['tmp_directory']);
         $container->setParameter('prestashop.flush_step', $flushStep);
+        $container->setParameter('prestashop.order_state_mapping', $orderStateMapping);
 
         foreach ($resources as $resource => $configuration) {
             $this->createRepositoryDefinition($prefix, $resource, $configuration, $container);

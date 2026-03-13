@@ -84,6 +84,10 @@
             <argument type="service" id="prestashop.repository.configuration"/>
         </service>
 
+        <service id="ACSEO\PrestashopMigrationPlugin\Resolver\OrderStateResolver">
+            <argument>%prestashop.order_state_mapping%</argument>
+        </service>
+
         <!-- RESOURCE TRANSFORMER -->
         <service id="ACSEO\PrestashopMigrationPlugin\DataTransformer\Resource\AdminUser\AdminUserResourceTransformer"
                  decorates="prestashop.data_transformer.resource.admin_user">
@@ -207,6 +211,23 @@
             <argument type="service" id="sylius.generator.taxon_slug"/>
             <argument type="service" id="sylius.repository.taxon"/>
             <argument type="service" id="ACSEO\PrestashopMigrationPlugin\Model\LocaleFetcher"/>
+        </service>
+
+        <service id="ACSEO\PrestashopMigrationPlugin\DataTransformer\Resource\Order\OrderResourceTransformer"
+                 decorates="prestashop.data_transformer.resource.order">
+            <argument type="service" id=".inner"/>
+            <argument type="service" id="sylius.repository.customer"/>
+            <argument type="service" id="sylius.repository.address"/>
+            <argument type="service" id="sylius.repository.currency"/>
+            <argument type="service" id="sylius.repository.channel"/>
+            <argument type="service" id="sylius.repository.product"/>
+            <argument type="service" id="sylius.repository.product_variant"/>
+            <argument type="service" id="sylius.repository.locale"/>
+            <argument type="service" id="sylius.repository.order_item"/>
+            <argument type="service" id="prestashop.repository.orders"/>
+            <argument type="service" id="sylius.factory.order_item"/>
+            <argument type="service" id="sylius.factory.order_item_unit"/>
+            <argument type="service" id="ACSEO\PrestashopMigrationPlugin\Resolver\OrderStateResolver"/>
         </service>
 
         <!--RESOURCE PROVIDER -->

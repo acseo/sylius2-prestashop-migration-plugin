@@ -89,6 +89,11 @@ class PrestashopMigrationCheckCommand extends Command
             'label' => 'Admin Users',
             'command' => 'prestashop:migration:admin_user',
         ],
+        'order' => [
+            'sylius_entity' => 'App\Entity\Order\Order',
+            'label' => 'Orders',
+            'command' => 'prestashop:migration:order',
+        ],
     ];
 
     public function __construct(EntityManagerInterface $entityManager, iterable $importers)

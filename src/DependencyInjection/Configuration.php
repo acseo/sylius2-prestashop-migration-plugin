@@ -13,6 +13,7 @@ use ACSEO\PrestashopMigrationPlugin\Model\Customer\CustomerModel;
 use ACSEO\PrestashopMigrationPlugin\Model\Employee\EmployeeModel;
 use ACSEO\PrestashopMigrationPlugin\Model\Lang\LangModel;
 use ACSEO\PrestashopMigrationPlugin\Model\Product\ProductAttributeModel;
+use ACSEO\PrestashopMigrationPlugin\Model\Order\OrderModel;
 use ACSEO\PrestashopMigrationPlugin\Model\Product\ProductModel;
 use ACSEO\PrestashopMigrationPlugin\Model\Shop\ShopModel;
 use ACSEO\PrestashopMigrationPlugin\Model\Tax\TaxCategoryModel;
@@ -26,6 +27,7 @@ use ACSEO\PrestashopMigrationPlugin\Repository\Customer\CustomerRepository;
 use ACSEO\PrestashopMigrationPlugin\Repository\EntityRepository;
 use ACSEO\PrestashopMigrationPlugin\Repository\Product\ProductAttributeRepository;
 use ACSEO\PrestashopMigrationPlugin\Repository\Product\ProductRepository;
+use ACSEO\PrestashopMigrationPlugin\Repository\Order\OrderRepository;
 use ACSEO\PrestashopMigrationPlugin\Repository\Shop\ShopRepository;
 use Symfony\Component\Config\Definition\Builder\NodeBuilder;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
@@ -46,9 +48,132 @@ class Configuration implements ConfigurationInterface
             ->scalarNode('public_directory')->defaultNull()->info('The public directory where the product images are stored (ex : "https://www.example.com/img/p/")')->cannotBeEmpty()->end()
             ->scalarNode('tmp_directory')->defaultValue('/tmp/prestashop')->info('The temporary directory where the product images will be downloaded.')->cannotBeEmpty()->end();
 
+        $this->addOrderStateMappingSection($rootNode);
         $this->addResourceSection($rootNode);
 
         return $treeBuilder;
+    }
+
+    public function addOrderStateMappingSection(NodeBuilder $builder)
+    {
+        $defaultMapping = [
+            1 => [  // Awaiting check payment
+                'order_state' => 'new',
+                'checkout_state' => 'completed',
+                'payment_state' => 'awaiting_payment',
+                'shipping_state' => 'ready',
+            ],
+            2 => [  // Payment accepted
+                'order_state' => 'new',
+                'checkout_state' => 'completed',
+                'payment_state' => 'paid',
+                'shipping_state' => 'ready',
+            ],
+            3 => [  // Processing in progress
+                'order_state' => 'new',
+                'checkout_state' => 'completed',
+                'payment_state' => 'paid',
+                'shipping_state' => 'ready',
+            ],
+            4 => [  // Shipped
+                'order_state' => 'fulfilled',
+                'checkout_state' => 'completed',
+                'payment_state' => 'paid',
+                'shipping_state' => 'shipped',
+            ],
+            5 => [  // Delivered
+                'order_state' => 'fulfilled',
+                'checkout_state' => 'completed',
+                'payment_state' => 'paid',
+                'shipping_state' => 'shipped',
+            ],
+            6 => [  // Canceled
+                'order_state' => 'cancelled',
+                'checkout_state' => 'completed',
+                'payment_state' => 'cancelled',
+                'shipping_state' => 'cancelled',
+            ],
+            7 => [  // Refunded
+                'order_state' => 'cancelled',
+                'checkout_state' => 'completed',
+                'payment_state' => 'refunded',
+                'shipping_state' => 'cancelled',
+            ],
+            8 => [  // Payment error
+                'order_state' => 'cancelled',
+                'checkout_state' => 'completed',
+                'payment_state' => 'cancelled',
+                'shipping_state' => 'cancelled',
+            ],
+            9 => [  // On backorder (paid)
+                'order_state' => 'new',
+                'checkout_state' => 'completed',
+                'payment_state' => 'paid',
+                'shipping_state' => 'ready',
+            ],
+            10 => [  // Awaiting bank wire payment
+                'order_state' => 'new',
+                'checkout_state' => 'completed',
+                'payment_state' => 'awaiting_payment',
+                'shipping_state' => 'ready',
+            ],
+            11 => [  // Remote payment accepted
+                'order_state' => 'new',
+                'checkout_state' => 'completed',
+                'payment_state' => 'paid',
+                'shipping_state' => 'ready',
+            ],
+            12 => [  // On backorder (not paid)
+                'order_state' => 'new',
+                'checkout_state' => 'completed',
+                'payment_state' => 'awaiting_payment',
+                'shipping_state' => 'ready',
+            ],
+            13 => [  // Awaiting Cash On Delivery validation
+                'order_state' => 'new',
+                'checkout_state' => 'completed',
+                'payment_state' => 'awaiting_payment',
+                'shipping_state' => 'ready',
+            ],
+            14 => [  // Waiting for payment
+                'order_state' => 'new',
+                'checkout_state' => 'completed',
+                'payment_state' => 'awaiting_payment',
+                'shipping_state' => 'ready',
+            ],
+            15 => [  // Partial refund
+                'order_state' => 'new',
+                'checkout_state' => 'completed',
+                'payment_state' => 'partially_refunded',
+                'shipping_state' => 'ready',
+            ],
+            16 => [  // Partial payment
+                'order_state' => 'new',
+                'checkout_state' => 'completed',
+                'payment_state' => 'partially_paid',
+                'shipping_state' => 'ready',
+            ],
+            17 => [  // Authorized. To be captured by merchant
+                'order_state' => 'new',
+                'checkout_state' => 'completed',
+                'payment_state' => 'authorized',
+                'shipping_state' => 'ready',
+            ],
+        ];
+
+        $builder
+            ->arrayNode('order_state_mapping')
+                ->defaultValue($defaultMapping)
+                ->useAttributeAsKey('prestashop_state_id')
+                ->arrayPrototype()
+                    ->children()
+                        ->scalarNode('order_state')->defaultValue('new')->end()
+                        ->scalarNode('checkout_state')->defaultValue('completed')->end()
+                        ->scalarNode('payment_state')->defaultValue('awaiting_payment')->end()
+                        ->scalarNode('shipping_state')->defaultValue('ready')->end()
+                    ->end()
+                ->end()
+            ->end();
     }
 
     public function addResourceSection(NodeBuilder $builder){
@@ -142,6 +267,18 @@ class Configuration implements ConfigurationInterface
                             ->scalarNode('use_translation')->defaultValue(true)->end()
                             ->scalarNode('sylius')->defaultValue('product')->end()
                             ->scalarNode('priority')->defaultValue(200)->end()
+                        ->end()
+                    ->end()
+                    ->arrayNode('order')
+                        ->addDefaultsIfNotSet()
+                        ->children()
+                            ->scalarNode('table')->defaultValue('orders')->end()
+                            ->scalarNode('repository')->defaultValue(OrderRepository::class)->end()
+                            ->scalarNode('model')->defaultValue(OrderModel::class)->end()
+                            ->scalarNode('primary_key')->defaultValue('id_order')->end()
+                            ->scalarNode('use_translation')->defaultValue(false)->end()
+                            ->scalarNode('sylius')->defaultValue('order')->end()
+                            ->scalarNode('priority')->defaultValue(180)->end()
                         ->end()
                     ->end()
                     ->arrayNode('product_option')

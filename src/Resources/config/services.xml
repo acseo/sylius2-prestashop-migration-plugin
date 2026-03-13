@@ -111,6 +111,13 @@
             <argument type="service" id="sylius.factory.zone_member"/>
         </service>
 
+        <service id="ACSEO\PrestashopMigrationPlugin\DataTransformer\Resource\Customer\CustomerGroupResourceTransformer"
+                 decorates="prestashop.data_transformer.resource.customer_group">
+            <argument type="service" id=".inner"/>
+            <argument type="service" id="ACSEO\PrestashopMigrationPlugin\Model\LocaleFetcher"/>
+            <argument type="service" id="logger"/>
+        </service>
+
         <service id="ACSEO\PrestashopMigrationPlugin\DataTransformer\Resource\Channel\ChannelResourceTransformer"
                  decorates="prestashop.data_transformer.resource.channel">
             <argument type="service" id=".inner"/>
@@ -187,6 +194,7 @@
                  decorates="prestashop.data_transformer.resource.customer">
             <argument type="service" id=".inner"/>
             <argument type="service" id="sylius.factory.shop_user"/>
+            <argument type="service" id="sylius.repository.customer_group"/>
         </service>
 
         <service id="ACSEO\PrestashopMigrationPlugin\DataTransformer\Resource\Taxation\TaxRateResourceTransformer"
@@ -249,6 +257,12 @@
             <argument type="service" id="sylius.repository.country"/>
         </service>
 
+        <service id="ACSEO\PrestashopMigrationPlugin\Provider\Customer\CustomerGroupResourceProvider"
+                 decorates="prestashop.provider.customer_group">
+            <argument type="service" id=".inner"/>
+            <argument type="service" id="sylius.repository.customer_group"/>
+        </service>
+
         <service id="ACSEO\PrestashopMigrationPlugin\Provider\Product\ProductResourceProvider"
                  decorates="prestashop.provider.product">
             <argument type="service" id=".inner"/>
@@ -299,6 +313,11 @@
 
         <service id="ACSEO\PrestashopMigrationPlugin\Validator\Country\CountryValidator"
                  decorates="prestashop.validator.country">
+            <argument type="service" id=".inner"/>
+        </service>
+
+        <service id="ACSEO\PrestashopMigrationPlugin\Validator\Customer\CustomerGroupValidator"
+                 decorates="prestashop.validator.customer_group">
             <argument type="service" id=".inner"/>
         </service>
 

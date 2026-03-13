@@ -74,6 +74,11 @@ class PrestashopMigrationCheckCommand extends Command
             'label' => 'Product Variants',
             'command' => 'prestashop:migration:product_variant',
         ],
+        'customer_group' => [
+            'sylius_entity' => 'App\Entity\Customer\CustomerGroup',
+            'label' => 'Customer Groups',
+            'command' => 'prestashop:migration:customer_group',
+        ],
         'customer' => [
             'sylius_entity' => 'App\Entity\Customer\Customer',
             'label' => 'Customers',

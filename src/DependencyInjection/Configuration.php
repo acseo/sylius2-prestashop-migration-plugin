@@ -9,6 +9,7 @@ use ACSEO\PrestashopMigrationPlugin\Model\Attribute\AttributeModel;
 use ACSEO\PrestashopMigrationPlugin\Model\Category\CategoryModel;
 use ACSEO\PrestashopMigrationPlugin\Model\Country\CountryModel;
 use ACSEO\PrestashopMigrationPlugin\Model\Currency\CurrencyModel;
+use ACSEO\PrestashopMigrationPlugin\Model\Customer\CustomerGroupModel;
 use ACSEO\PrestashopMigrationPlugin\Model\Customer\CustomerModel;
 use ACSEO\PrestashopMigrationPlugin\Model\Employee\EmployeeModel;
 use ACSEO\PrestashopMigrationPlugin\Model\Lang\LangModel;
@@ -23,6 +24,7 @@ use ACSEO\PrestashopMigrationPlugin\Repository\Address\AddressRepository;
 use ACSEO\PrestashopMigrationPlugin\Repository\Category\CategoryRepository;
 use ACSEO\PrestashopMigrationPlugin\Repository\Country\CountryRepository;
 use ACSEO\PrestashopMigrationPlugin\Repository\Currency\CurrencyRepository;
+use ACSEO\PrestashopMigrationPlugin\Repository\Customer\CustomerGroupRepository;
 use ACSEO\PrestashopMigrationPlugin\Repository\Customer\CustomerRepository;
 use ACSEO\PrestashopMigrationPlugin\Repository\EntityRepository;
 use ACSEO\PrestashopMigrationPlugin\Repository\Product\ProductAttributeRepository;
@@ -233,6 +235,18 @@ class Configuration implements ConfigurationInterface
                             ->scalarNode('primary_key')->defaultValue('id_currency')->end()
                             ->scalarNode('sylius')->defaultValue('currency')->end()
                             ->scalarNode('priority')->defaultValue(255)->end()
+                        ->end()
+                    ->end()
+                    ->arrayNode('customer_group')
+                        ->addDefaultsIfNotSet()
+                        ->children()
+                            ->scalarNode('table')->defaultValue('group')->end()
+                            ->scalarNode('repository')->defaultValue(CustomerGroupRepository::class)->end()
+                            ->scalarNode('model')->defaultValue(CustomerGroupModel::class)->end()
+                            ->scalarNode('primary_key')->defaultValue('id_group')->end()
+                            ->scalarNode('use_translation')->defaultValue(true)->end()
+                            ->scalarNode('sylius')->defaultValue('customer_group')->end()
+                            ->scalarNode('priority')->defaultValue(235)->end()
                         ->end()
                     ->end()
                     ->arrayNode('customer')

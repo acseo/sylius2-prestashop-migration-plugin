@@ -6,10 +6,10 @@ namespace ACSEO\PrestashopMigrationPlugin\DataTransformer\Resource\User;
 use ACSEO\PrestashopMigrationPlugin\DataTransformer\Resource\ResourceTransformerInterface;
 use ACSEO\PrestashopMigrationPlugin\Model\Customer\CustomerModel;
 use ACSEO\PrestashopMigrationPlugin\Model\ModelInterface;
-
 use Sylius\Component\Customer\Model\CustomerInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\Component\Resource\Model\ResourceInterface;
+use Sylius\Component\Resource\Repository\RepositoryInterface;
 
 class ShopUserResourceTransformer implements ResourceTransformerInterface
 {
@@ -17,10 +17,16 @@ class ShopUserResourceTransformer implements ResourceTransformerInterface
 
     private FactoryInterface $userFactory;
 
-    public function __construct(ResourceTransformerInterface $transformer, FactoryInterface $userFactory)
-    {
+    private RepositoryInterface $customerGroupRepository;
+
+    public function __construct(
+        ResourceTransformerInterface $transformer,
+        FactoryInterface $userFactory,
+        RepositoryInterface $customerGroupRepository
+    ) {
         $this->transformer = $transformer;
         $this->userFactory = $userFactory;
+        $this->customerGroupRepository = $customerGroupRepository;
     }
 
     /**
@@ -57,6 +63,13 @@ class ShopUserResourceTransformer implements ResourceTransformerInterface
             $customer->setBirthday(\DateTime::createFromFormat('Y-m-d', $model->birthday));
         }
 
+        // Set customer group (migrated from PrestaShop id_default_group)
+        if ($model->defaultGroupId > 0) {
+            $customerGroup = $this->customerGroupRepository->findOneBy(['prestashopId' => $model->defaultGroupId]);
+            if (null !== $customerGroup) {
+                $customer->setGroup($customerGroup);
+            }
+        }
 
         return $customer;
     }

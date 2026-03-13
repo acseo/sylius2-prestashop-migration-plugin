@@ -98,6 +98,7 @@ Apply this trait to the following entities:
 - `App\Entity\Product\ProductOptionValue`
 - `App\Entity\Taxonomy\Taxon`
 - `App\Entity\Customer\Customer`
+- `App\Entity\Customer\CustomerGroup`
 - `App\Entity\Addressing\Address`
 - `App\Entity\Addressing\Country`
 - `App\Entity\Addressing\Zone`
@@ -107,6 +108,8 @@ Apply this trait to the following entities:
 - `App\Entity\Taxation\TaxCategory`
 - `App\Entity\Taxation\TaxRate`
 - `App\Entity\User\AdminUser`
+- `App\Entity\Order\Order`
+- `App\Entity\Order\OrderItem`
 
 ### Implement ProductVariantInterface (for Product Variants only)
 
@@ -172,7 +175,10 @@ PrestaShop to Sylius Migration Status Check
 | Locales/Languages     | 2          | 8            | 0        | MISSING| php bin/console prestashop:migration:locale |
 | Currencies            | 3          | 9            | 0        | MISSING| php bin/console prestashop:migration:currency |
 | Countries             | 241        | 241          | 241      | OK     | -                                   |
+| Customer Groups       | 3          | 3            | 3        | OK     | -                                   |
 | Products              | 150        | 106          | 0        | MISSING| php bin/console prestashop:migration:product |
+| Customers             | 50         | 50           | 50       | OK     | -                                   |
+| Orders                | 125        | 125          | 125      | OK     | -                                   |
 +-----------------------+------------+--------------+----------+--------+-------------------------------------+
 ```
 
@@ -183,7 +189,9 @@ Test any migration command without writing to the database:
 ```bash
 php bin/console prestashop:migration:locale --dry-run
 php bin/console prestashop:migration:currency --dry-run
+php bin/console prestashop:migration:customer_group --dry-run
 php bin/console prestashop:migration:product --dry-run
+php bin/console prestashop:migration:order --dry-run
 ```
 
 Dry-run mode will:
@@ -216,12 +224,18 @@ php bin/console prestashop:migration:product_option_value
 php bin/console prestashop:migration:product
 php bin/console prestashop:migration:product_variant
 
-# 4. Customers and orders
+# 4. Customer groups (before customers)
+php bin/console prestashop:migration:customer_group
+
+# 5. Customers and users
 php bin/console prestashop:migration:customer
 php bin/console prestashop:migration:address
 php bin/console prestashop:migration:admin_user
 
-# 5. Product images (optional, can take time)
+# 6. Orders
+php bin/console prestashop:migration:order
+
+# 7. Product images (optional, can take time)
 php bin/console prestashop:migration:product:images
 ```
 
@@ -233,7 +247,17 @@ To migrate everything in one command:
 php bin/console prestashop:migration:all
 ```
 
-This command runs all migrations in the correct order.
+This command runs all migrations in the correct order (by priority). It includes:
+
+- Locales, Currencies, Countries, Zones, Channel
+- Tax categories and tax rates
+- Taxons, product options, product option values, products, product variants
+- **Customer groups** (before customers)
+- Customers, addresses, admin users
+- Orders
+- Product images (optional, see below)
+
+Customer groups are migrated automatically before customers so that each customer can be assigned to the correct group.
 
 ### Force Mode - DANGER: DATA LOSS
 
@@ -326,6 +350,96 @@ The following entities have smart duplicate detection:
 - **Locale**: Matches by locale code (with automatic transformation, e.g., `fr_FR` → `fr-fr`)
 - **Currency**: Matches by currency code (e.g., `EUR`, `USD`)
 - **Country**: Matches by ISO country code (e.g., `FR`, `US`)
+- **Customer Group**: Matches by generated code (slug from name + id) to avoid duplicates on re-run
+
+## Customer Groups
+
+Customer groups are migrated from PrestaShop `ps_group` and `ps_group_lang` to Sylius `sylius_customer_group`.
+
+### Mapping
+
+| PrestaShop (ps_group) | Sylius (customer_group) |
+|-----------------------|-------------------------|
+| id_group              | prestashopId (trait)     |
+| name (ps_group_lang)   | code (slugified, unique) |
+| name (ps_group_lang)   | name                    |
+
+### Behaviour
+
+- **One group per customer**: In PrestaShop a customer can belong to several groups; in Sylius a customer has a single group. The migration uses the **default group** (`id_default_group`) when assigning a group to each customer.
+- **Translations**: Group names from `ps_group_lang` are used; the first available locale is used for the Sylius `name` and to generate the `code`.
+
+### Limitations
+
+- **Group reductions**: PrestaShop group discounts (`reduction`, `price_display_method`, `show_prices`) are **not** migrated. Sylius handles this via Promotions. Groups that had a reduction in PrestaShop are logged during migration so you can recreate equivalent promotions in Sylius if needed.
+
+## Order State Mapping
+
+When migrating orders from PrestaShop to Sylius, order states are automatically converted to match Sylius's multi-dimensional state system.
+
+### Sylius Order States
+
+Unlike PrestaShop which uses a single order state, Sylius tracks orders using four independent state dimensions:
+
+- **Order State** (`state`): The overall order lifecycle (cart, new, cancelled, fulfilled)
+- **Checkout State** (`checkout_state`): The checkout process state (cart, addressed, shipping_selected, payment_selected, completed)
+- **Payment State** (`payment_state`): Payment status (cart, awaiting_payment, authorized, partially_paid, paid, partially_refunded, refunded, cancelled)
+- **Shipping State** (`shipping_state`): Shipping status (cart, ready, partially_shipped, shipped, cancelled)
+
+### Default State Mapping
+
+The plugin includes a comprehensive default mapping from PrestaShop order states to Sylius states:
+
+| PrestaShop State ID | PrestaShop State Name | Order State | Checkout State | Payment State | Shipping State |
+|---------------------|----------------------|-------------|----------------|---------------|----------------|
+| 1 | Awaiting check payment | new | completed | awaiting_payment | ready |
+| 2 | Payment accepted | new | completed | paid | ready |
+| 3 | Processing in progress | new | completed | paid | ready |
+| 4 | Shipped | fulfilled | completed | paid | shipped |
+| 5 | Delivered | fulfilled | completed | paid | shipped |
+| 6 | Canceled | cancelled | completed | cancelled | cancelled |
+| 7 | Refunded | cancelled | completed | refunded | cancelled |
+| 8 | Payment error | cancelled | completed | cancelled | cancelled |
+| 9 | On backorder (paid) | new | completed | paid | ready |
+| 10 | Awaiting bank wire payment | new | completed | awaiting_payment | ready |
+| 11 | Remote payment accepted | new | completed | paid | ready |
+| 12 | On backorder (not paid) | new | completed | awaiting_payment | ready |
+| 13 | Awaiting Cash On Delivery validation | new | completed | awaiting_payment | ready |
+| 14 | Waiting for payment | new | completed | awaiting_payment | ready |
+| 15 | Partial refund | new | completed | partially_refunded | ready |
+| 16 | Partial payment | new | completed | partially_paid | ready |
+| 17 | Authorized. To be captured by merchant | new | completed | authorized | ready |
+
+### Customizing State Mapping
+
+You can customize the state mapping in your `config/packages/prestashop_migration.yaml`:
+
+```yaml
+prestashop_migration:
+    # ... other configuration
+
+    order_state_mapping:
+        # Override specific PrestaShop states
+        4:  # Shipped
+            order_state: fulfilled
+            checkout_state: completed
+            payment_state: paid
+            shipping_state: shipped
+
+        # Add custom state mappings
+        18:  # Custom PrestaShop state
+            order_state: new
+            checkout_state: completed
+            payment_state: awaiting_payment
+            shipping_state: ready
+```
+
+**Important Notes:**
+
+- The mapping uses PrestaShop's `current_state` (order state ID) as the key
+- All four state dimensions must be specified for each mapping
+- Only override states you need to customize; others will use default values
+- After migration, orders can be managed through Sylius's normal state machine workflows
 
 ## Advanced Customization
 

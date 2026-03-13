@@ -31,4 +31,7 @@ class CustomerModel implements ModelInterface
 
     #[Field(source: 'newsletter', target: 'subscribedToNewsletter')]
     public bool $newsletter;
+
+    #[Field(source: 'id_default_group')]
+    public int $defaultGroupId;
 }

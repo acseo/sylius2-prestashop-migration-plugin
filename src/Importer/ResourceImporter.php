@@ -7,6 +7,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use ACSEO\PrestashopMigrationPlugin\DataCollector\DataCollectorInterface;
 
 use ACSEO\PrestashopMigrationPlugin\Persister\PersisterInterface;
+use ACSEO\PrestashopMigrationPlugin\Persister\PersistStatus;
 use ACSEO\PrestashopMigrationPlugin\Validator\ViolationBagInterface;
 
 class ResourceImporter implements ImporterInterface
@@ -49,8 +50,11 @@ class ResourceImporter implements ImporterInterface
             $collection = $this->collector->collect($this->step, $offset);
             $processed = count($collection);
 
+            // Collect statuses for each persisted item
+            $statuses = [];
             foreach ($collection as $item) {
-                $this->persister->persist($item, $dryRun);
+                $status = $this->persister->persist($item, $dryRun);
+                $statuses[] = $status;
             }
 
             if (!$dryRun) {
@@ -60,7 +64,7 @@ class ResourceImporter implements ImporterInterface
             $offset += $processed;
 
             if (null !== $callable) {
-                $callable($processed, $this->violationBag->all(), $dryRun);
+                $callable($processed, $statuses, $this->violationBag->all(), $dryRun);
             }
         }
     }

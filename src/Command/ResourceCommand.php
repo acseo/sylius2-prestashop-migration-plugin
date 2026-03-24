@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace ACSEO\PrestashopMigrationPlugin\Command;
 
 use ACSEO\PrestashopMigrationPlugin\Importer\ImporterInterface;
+use ACSEO\PrestashopMigrationPlugin\Persister\PersistStatus;
 use ACSEO\PrestashopMigrationPlugin\Validator\Violation;
 use Sylius\Component\Core\Formatter\StringInflector;
 use Symfony\Component\Console\Command\Command;
@@ -46,11 +47,24 @@ class ResourceCommand extends Command
         $progressBar = new ProgressBar($output, $this->importer->size());
         $progressBar->setFormat('%percent:3s%% [%bar%] %elapsed:6s%/%estimated:-6s%');
 
-        $persisted = 0;
+        $created = 0;
+        $updated = 0;
         $skipped = 0;
+        $failed = 0;
 
-        $this->importer->import(function (int $processed, array $violations, bool $isDryRun) use ($progressBar, $io, &$persisted, &$skipped) {
+        $this->importer->import(function (int $processed, array $statuses, array $violations, bool $isDryRun) use ($progressBar, $io, &$created, &$updated, &$skipped, &$failed) {
 
+            // Count statuses
+            foreach ($statuses as $status) {
+                match($status) {
+                    PersistStatus::CREATED => $created++,
+                    PersistStatus::UPDATED => $updated++,
+                    PersistStatus::SKIPPED => $skipped++,
+                    PersistStatus::FAILED => $failed++,
+                };
+            }
+
+            // Display violations
             $violationCount = 0;
             array_walk_recursive($violations,
                 function (Violation $violation) use ($io, &$violationCount) {
@@ -62,9 +76,6 @@ class ResourceCommand extends Command
                 }
             );
 
-            $persisted += ($processed - $violationCount);
-            $skipped += $violationCount;
-
             $progressBar->advance($processed);
         }, $dryRun);
 
@@ -73,9 +84,9 @@ class ResourceCommand extends Command
         $io->newLine(2);
 
         if ($dryRun) {
-            $io->success(sprintf('[DRY RUN] Migration simulated successfully - %d entities would be created/updated, %d skipped', $persisted, $skipped));
+            $io->success(sprintf('[DRY RUN] Migration simulated successfully - %d created, %d updated, %d skipped, %d failed', $created, $updated, $skipped, $failed));
         } else {
-            $io->success(sprintf('Migration successful - %d entities created/updated, %d skipped', $persisted, $skipped));
+            $io->success(sprintf('Migration successful - %d created, %d updated, %d skipped, %d failed', $created, $updated, $skipped, $failed));
         }
 
         $io->writeln('---------------------------------------------------------------------------');

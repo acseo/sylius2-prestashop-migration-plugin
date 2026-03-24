@@ -5,5 +5,5 @@ namespace ACSEO\PrestashopMigrationPlugin\Persister;
 
 interface PersisterInterface
 {
-    public function persist(array $data, bool $dryRun = false): void;
+    public function persist(array $data, bool $dryRun = false): PersistStatus;
 }
